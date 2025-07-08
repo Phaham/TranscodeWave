@@ -2,10 +2,6 @@
 
 A distributed video transcoding service built with RabbitMQ, GStreamer, and S3-compatible storage (e.g., MinIO), complemented by a React frontend and FastAPI backend.
 
-## Demo
-
-![Job Submission Demo](docs/images/frontend_demo.gif)
-
 ## Overview
 
 TranscodeWave orchestrates efficient, scalable video transcoding workflows:
