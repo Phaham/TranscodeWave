@@ -1,0 +1,118 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - transcoding_net
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: transcoder
+      POSTGRES_PASSWORD: OW14F15rBHRLivihLral
+      POSTGRES_DB: transcoding_jobs
+    ports:
+      - "5432:5432"
+    networks:
+      - transcoding_net
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    entrypoint: sh
+    command: -c 'mkdir -p /data/transcode && minio server /data --console-address ":9001"'
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - transcoding_net
+
+  worker:
+    build:
+      context: worker/
+      dockerfile: Dockerfile
+    container_name: worker
+    environment:
+      S3_ACCESS_KEY_ID: minio
+      S3_SECRET_ACCESS_KEY: minio123
+      S3_BUCKET_NAME: transcode
+      S3_ENDPOINT_URL: http://minio:9000
+      GST_DEBUG: 1
+      POSTGRES_USER: transcoder
+      POSTGRES_PASSWORD: OW14F15rBHRLivihLral
+      POSTGRES_DB: transcoding_jobs
+      POSTGRES_HOST: postgres
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_USER: guest
+      RMQ_PASSWORD: guest
+    depends_on:
+      - rabbitmq
+      - minio
+    networks:
+      - transcoding_net
+
+  worker_2:
+    build:
+      context: worker/
+      dockerfile: Dockerfile
+    container_name: worker_2
+    environment:
+      S3_ACCESS_KEY_ID: minio
+      S3_SECRET_ACCESS_KEY: minio123
+      S3_BUCKET_NAME: transcode
+      S3_ENDPOINT_URL: http://minio:9000
+      GST_DEBUG: 1
+      POSTGRES_USER: transcoder
+      POSTGRES_PASSWORD: OW14F15rBHRLivihLral
+      POSTGRES_DB: transcoding_jobs
+      POSTGRES_HOST: postgres
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_USER: guest
+      RMQ_PASSWORD: guest
+    depends_on:
+      - rabbitmq
+      - minio
+    networks:
+      - transcoding_net
+
+  api:
+    build:
+      context: api/
+      dockerfile: Dockerfile
+    container_name: api
+    environment:
+      S3_ACCESS_KEY_ID: minio
+      S3_SECRET_ACCESS_KEY: minio123
+      S3_BUCKET_NAME: transcode
+      S3_ENDPOINT_URL: http://minio:9000
+      POSTGRES_USER: transcoder
+      POSTGRES_PASSWORD: OW14F15rBHRLivihLral
+      POSTGRES_DB: transcoding_jobs
+      POSTGRES_HOST: postgres
+      RMQ_HOST: rabbitmq
+      RMQ_PORT: 5672
+      RMQ_USER: guest
+      RMQ_PASSWORD: guest
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rabbitmq
+      - minio
+    networks:
+      - transcoding_net
+
+networks:
+  transcoding_net:
+    driver: bridge
